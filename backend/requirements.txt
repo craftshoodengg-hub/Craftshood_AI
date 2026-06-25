@@ -1,0 +1,12 @@
+ezdxf>=1.3.0
+shapely>=2.0.0
+numpy
+pandas
+fastapi
+uvicorn
+orjson
+loguru
+python-dotenv
+pydantic
+pytest
+
