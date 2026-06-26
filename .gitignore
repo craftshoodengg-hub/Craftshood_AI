@@ -1,16 +1,7 @@
-# Virtual environment
-venv/
-
-# Python cache
+.aider*
+.aider/
+.aider.tags.cache.v4/
+.pytest_cache/
 __pycache__/
 *.pyc
-
-# Pytest
-.pytest_cache/
-
-# Aider cache
-.aider.tags.cache.v4/
-
-# OS files
-.DS_Store
-Thumbs.db
+venv/
