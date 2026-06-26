@@ -23,6 +23,14 @@ from .base import (
     ValidationIssue,
     ValidationReport,
 )
+from .entities_opening import (
+    Door,
+    Opening,
+    Window,
+)
+from .entities_wall import (
+    Wall,
+)
 from .types import (
     ColumnType,
     DoorType,
@@ -43,6 +51,11 @@ __all__ = [
     "Point2D",
     "ValidationIssue",
     "ValidationReport",
+    # Entities
+    "Wall",
+    "Opening",
+    "Door",
+    "Window",
     # Enums
     "ColumnType",
     "DoorType",
