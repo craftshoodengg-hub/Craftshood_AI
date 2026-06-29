@@ -12,9 +12,11 @@ from dataclasses import dataclass
 from enum import StrEnum
 from typing import Any
 
-from shapely.geometry import GeometryCollection, LineString, MultiLineString, Point, Polygon
+from shapely.geometry import LineString, Point, Polygon
 
 from adjacency import RoomPolygon
+from geometry_utils import linear_length
+from validation import validate_room_polygons
 
 
 class RoadSide(StrEnum):
@@ -87,7 +89,7 @@ class FacingDetector:
     ) -> FacingResult:
         """Return typed road-facing result."""
 
-        _validate_rooms(rooms)
+        validate_room_polygons(rooms)
         _validate_walls(exterior_walls)
         if road_location.is_empty:
             raise ValueError("road_location cannot be empty")
@@ -112,7 +114,7 @@ class FacingDetector:
         )
 
     def _room_touches_front_wall(self, room: Polygon, wall: LineString) -> bool:
-        shared_length = _linear_length(room.boundary.intersection(wall))
+        shared_length = linear_length(room.boundary.intersection(wall))
         if shared_length >= self.config.minimum_touch_length:
             return True
 
@@ -123,7 +125,7 @@ class FacingDetector:
             return False
 
         buffered_wall = wall.buffer(self.config.wall_tolerance, cap_style="flat")
-        touch_length = _linear_length(room.boundary.intersection(buffered_wall))
+        touch_length = linear_length(room.boundary.intersection(buffered_wall))
         return touch_length >= self.config.minimum_touch_length
 
 
@@ -182,20 +184,6 @@ def road_side_from_wall(wall: LineString, road_location: Point) -> RoadSide:
     return RoadSide.EAST if dx > 0 else RoadSide.WEST
 
 
-def _validate_rooms(rooms: Sequence[RoomPolygon]) -> None:
-    seen_ids: set[str] = set()
-    for room in rooms:
-        if not room.room_id:
-            raise ValueError("room_id cannot be empty")
-        if room.room_id in seen_ids:
-            raise ValueError(f"Duplicate room_id: {room.room_id!r}")
-        if room.polygon.is_empty:
-            raise ValueError(f"Polygon for room_id {room.room_id!r} is empty")
-        if not room.polygon.is_valid:
-            raise ValueError(f"Polygon for room_id {room.room_id!r} is invalid")
-        seen_ids.add(room.room_id)
-
-
 def _validate_walls(exterior_walls: Sequence[ExteriorWall]) -> None:
     seen_ids: set[str] = set()
     for wall in exterior_walls:
@@ -208,11 +196,4 @@ def _validate_walls(exterior_walls: Sequence[ExteriorWall]) -> None:
         seen_ids.add(wall.wall_id)
 
 
-def _linear_length(geometry: Any) -> float:
-    if geometry.is_empty:
-        return 0.0
-    if isinstance(geometry, (LineString, MultiLineString)):
-        return float(geometry.length)
-    if isinstance(geometry, GeometryCollection):
-        return sum(_linear_length(part) for part in geometry.geoms)
-    return 0.0
+

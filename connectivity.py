@@ -11,9 +11,10 @@ from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from typing import Any
 
-from shapely.geometry import GeometryCollection, LineString, MultiLineString, Point, Polygon
+from shapely.geometry import Point, Polygon
 
 from adjacency import RoomPolygon
+from geometry_utils import linear_length
 
 
 @dataclass(frozen=True, slots=True)
@@ -136,7 +137,7 @@ class ConnectivityBuilder:
         doors: Sequence[DoorPoint],
     ) -> DoorPoint | None:
         shared_boundary = first.boundary.intersection(second.boundary)
-        if _linear_length(shared_boundary) <= 0:
+        if linear_length(shared_boundary) <= 0:
             return None
 
         for door in doors:
@@ -199,11 +200,4 @@ def _validate_doors(doors: Sequence[DoorPoint]) -> None:
         seen_ids.add(door.door_id)
 
 
-def _linear_length(geometry: Any) -> float:
-    if geometry.is_empty:
-        return 0.0
-    if isinstance(geometry, (LineString, MultiLineString)):
-        return float(geometry.length)
-    if isinstance(geometry, GeometryCollection):
-        return sum(_linear_length(part) for part in geometry.geoms)
-    return 0.0
+

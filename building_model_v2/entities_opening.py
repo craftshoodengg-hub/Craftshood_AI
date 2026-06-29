@@ -66,7 +66,7 @@ class Opening(BaseEntity):
         Returns:
             Dictionary representation of the opening.
         """
-        base = super().to_dict()
+        base = super(Opening, self).to_dict()
         base.update({
             "opening_type": self.opening_type.value,
             "width": self.width,
@@ -142,7 +142,7 @@ class Door(Opening):
         Returns:
             Dictionary representation of the door.
         """
-        base = super().to_dict()
+        base = super(Door, self).to_dict()
         base.update({
             "door_type": self.door_type.value,
             "swing_direction": self.swing_direction,
@@ -260,7 +260,7 @@ class Window(Opening):
         Returns:
             Dictionary representation of the window.
         """
-        base = super().to_dict()
+        base = super(Window, self).to_dict()
         base.update({
             "window_type": self.window_type.value,
             "sill_height": self.sill_height,

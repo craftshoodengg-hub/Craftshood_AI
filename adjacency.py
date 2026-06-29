@@ -7,11 +7,14 @@ requiring a positive shared boundary length.
 
 from __future__ import annotations
 
-from collections.abc import Iterable, Mapping, Sequence
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from typing import Any
 
-from shapely.geometry import GeometryCollection, LineString, MultiLineString, Polygon
+from shapely.geometry import Polygon
+
+from geometry_utils import linear_length
+from validation import validate_room_polygons_iterable
 
 
 @dataclass(frozen=True, slots=True)
@@ -68,7 +71,7 @@ class AdjacencyBuilder:
     def build_records(self, rooms: Sequence[RoomPolygon]) -> list[RoomAdjacency]:
         """Return typed adjacency records for ``rooms``."""
 
-        _validate_rooms(rooms)
+        validate_room_polygons_iterable(rooms)
         adjacency: dict[str, dict[str, float]] = {room.room_id: {} for room in rooms}
 
         for first_index, first in enumerate(rooms):
@@ -141,28 +144,4 @@ def shared_boundary_length(first: Polygon, second: Polygon) -> float:
     """Return the length of shared polygon boundary, ignoring area overlap."""
 
     intersection = first.boundary.intersection(second.boundary)
-    return _linear_length(intersection)
-
-
-def _linear_length(geometry: Any) -> float:
-    if geometry.is_empty:
-        return 0.0
-    if isinstance(geometry, (LineString, MultiLineString)):
-        return float(geometry.length)
-    if isinstance(geometry, GeometryCollection):
-        return sum(_linear_length(part) for part in geometry.geoms)
-    return 0.0
-
-
-def _validate_rooms(rooms: Iterable[RoomPolygon]) -> None:
-    seen_ids: set[str] = set()
-    for room in rooms:
-        if not room.room_id:
-            raise ValueError("room_id cannot be empty")
-        if room.room_id in seen_ids:
-            raise ValueError(f"Duplicate room_id: {room.room_id!r}")
-        seen_ids.add(room.room_id)
-        if room.polygon.is_empty:
-            raise ValueError(f"Polygon for room_id {room.room_id!r} is empty")
-        if not room.polygon.is_valid:
-            raise ValueError(f"Polygon for room_id {room.room_id!r} is invalid")
+    return linear_length(intersection)

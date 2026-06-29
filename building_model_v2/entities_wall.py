@@ -150,7 +150,7 @@ class Wall(BaseEntity):
         Returns:
             Dictionary representation of the wall.
         """
-        base = super().to_dict()
+        base = super(Wall, self).to_dict()
         base.update({
             "wall_type": self.wall_type.value,
             "geometry": {

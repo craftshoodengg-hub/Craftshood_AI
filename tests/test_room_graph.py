@@ -1,126 +1,109 @@
+"""Unit tests for Room Graph."""
 from __future__ import annotations
-
-import json
-from pathlib import Path
-
 import pytest
-
-from geometry_engine import LineEntity, LogicalWall, Point2D, WallType
-from room_graph import (
-    AreaCalculator,
-    BoundaryFinder,
-    BoundaryFinderConfig,
-    PolygonBuilder,
-    RoomCenter,
-    RoomExporter,
-    RoomGraphBuilder,
-)
+from building_model_v2.layout.room_graph import RoomConnection, RoomGraph
+from building_model_v2.layout.adjacency_rules import ConnectionType
 
 
-def test_boundary_finder_casts_rays_to_nearest_walls() -> None:
-    finder = BoundaryFinder(BoundaryFinderConfig(radial_ray_count=8, max_ray_length=100))
+class TestRoomConnection:
+    def test_create(self):
+        c = RoomConnection("a", "b", ConnectionType.DIRECT)
+        assert c.source_room_id == "a" and c.target_room_id == "b" and c.connection_type == ConnectionType.DIRECT
 
-    intersections = finder.find_boundary_points(RoomCenter(5, 5), _square_walls())
+    def test_to_dict(self):
+        c = RoomConnection("a", "b", ConnectionType.VIA_DOOR, "d1")
+        d = c.to_dict()
+        assert d["source_room_id"] == "a" and d["door_id"] == "d1"
 
-    assert len(intersections) == 8
-    assert {item.wall_id for item in intersections} == {
-        "wall-east",
-        "wall-north",
-        "wall-west",
-        "wall-south",
-    }
-    assert any(item.point.x == 10 and item.point.y == 5 for item in intersections)
+    def test_from_dict(self):
+        c = RoomConnection.from_dict({"source_room_id": "a", "target_room_id": "b", "connection_type": "direct"})
+        assert c.source_room_id == "a" and c.connection_type == ConnectionType.DIRECT
 
+    def test_equality(self):
+        c1 = RoomConnection("a", "b", ConnectionType.DIRECT)
+        c2 = RoomConnection("a", "b", ConnectionType.DIRECT)
+        assert c1 == c2
 
-def test_polygon_builder_sorts_points_clockwise_and_builds_polygon() -> None:
-    center = RoomCenter(5, 5)
-    intersections = BoundaryFinder(
-        BoundaryFinderConfig(radial_ray_count=8, max_ray_length=100)
-    ).find_boundary_points(center, _square_walls())
-
-    polygon = PolygonBuilder().build_polygon(center, intersections)
-
-    assert polygon.is_valid
-    assert polygon.area == pytest.approx(100)
-    assert polygon.length == pytest.approx(40)
+    def test_hash(self):
+        c1 = RoomConnection("a", "b", ConnectionType.DIRECT)
+        c2 = RoomConnection("a", "b", ConnectionType.DIRECT)
+        assert hash(c1) == hash(c2)
 
 
-def test_area_calculator_returns_room_metrics() -> None:
-    center = RoomCenter(5, 5)
-    intersections = BoundaryFinder(
-        BoundaryFinderConfig(radial_ray_count=8, max_ray_length=100)
-    ).find_boundary_points(center, _square_walls())
-    polygon = PolygonBuilder().build_polygon(center, intersections)
+class TestRoomGraph:
+    def test_add_connection(self):
+        g = RoomGraph()
+        g.add_connection(RoomConnection("a", "b", ConnectionType.DIRECT))
+        assert g.edge_count == 1 and g.room_count == 2
 
-    metrics = AreaCalculator().calculate(polygon)
+    def test_neighbors(self):
+        g = RoomGraph()
+        g.add_connection(RoomConnection("a", "b", ConnectionType.DIRECT))
+        g.add_connection(RoomConnection("a", "c", ConnectionType.DIRECT))
+        assert g.neighbors("a") == {"b", "c"}
 
-    assert metrics.area == pytest.approx(100)
-    assert metrics.perimeter == pytest.approx(40)
-    assert metrics.centroid.x == pytest.approx(5)
-    assert metrics.centroid.y == pytest.approx(5)
+    def test_connected(self):
+        g = RoomGraph()
+        g.add_connection(RoomConnection("a", "b", ConnectionType.DIRECT))
+        assert g.connected("a", "b") and g.connected("b", "a")
+        assert not g.connected("a", "c")
 
+    def test_shortest_path_direct(self):
+        g = RoomGraph()
+        g.add_connection(RoomConnection("a", "b", ConnectionType.DIRECT))
+        path = g.shortest_path("a", "b")
+        assert path == ["a", "b"]
 
-def test_graph_builder_returns_required_room_payload() -> None:
-    result = RoomGraphBuilder(
-        boundary_config=BoundaryFinderConfig(radial_ray_count=8, max_ray_length=100)
-    ).build_room("Living", RoomCenter(5, 5), _square_walls())
+    def test_shortest_path_multi(self):
+        g = RoomGraph()
+        g.add_connection(RoomConnection("a", "b", ConnectionType.DIRECT))
+        g.add_connection(RoomConnection("b", "c", ConnectionType.DIRECT))
+        path = g.shortest_path("a", "c")
+        assert path == ["a", "b", "c"]
 
-    payload = result.to_dict()
+    def test_shortest_path_same(self):
+        g = RoomGraph()
+        assert g.shortest_path("a", "a") == ["a"]
 
-    assert payload["room_name"] == "Living"
-    assert payload["area"] == pytest.approx(100)
-    assert payload["perimeter"] == pytest.approx(40)
-    assert payload["centroid"] == {"x": pytest.approx(5), "y": pytest.approx(5)}
-    assert set(payload["boundary_wall_ids"]) == {
-        "wall-east",
-        "wall-north",
-        "wall-west",
-        "wall-south",
-    }
-    assert payload["polygon"][0] == payload["polygon"][-1]
+    def test_shortest_path_disconnected(self):
+        g = RoomGraph()
+        g.add_connection(RoomConnection("a", "b", ConnectionType.DIRECT))
+        g.add_connection(RoomConnection("c", "d", ConnectionType.DIRECT))
+        assert g.shortest_path("a", "c") is None
 
+    def test_degree(self):
+        g = RoomGraph()
+        g.add_connection(RoomConnection("a", "b", ConnectionType.DIRECT))
+        g.add_connection(RoomConnection("a", "c", ConnectionType.DIRECT))
+        assert g.degree("a") == 2
 
-def test_room_exporter_writes_json(tmp_path: Path) -> None:
-    output_path = tmp_path / "living.json"
+    def test_empty_graph(self):
+        g = RoomGraph()
+        assert g.room_count == 0 and g.edge_count == 0
 
-    json_text = RoomExporter(
-        boundary_config=BoundaryFinderConfig(radial_ray_count=8, max_ray_length=100)
-    ).export_room_json("Living", RoomCenter(5, 5), _square_walls(), output_path)
+    def test_rooms(self):
+        g = RoomGraph()
+        g.add_connection(RoomConnection("a", "b", ConnectionType.DIRECT))
+        assert g.rooms == {"a", "b"}
 
-    payload = json.loads(json_text)
-    assert output_path.read_text(encoding="utf-8") == json_text
-    assert payload["room_name"] == "Living"
-    assert payload["area"] == pytest.approx(100)
-    assert payload["centroid"]["x"] == pytest.approx(5)
+    def test_serialization(self):
+        g = RoomGraph()
+        g.add_connection(RoomConnection("a", "b", ConnectionType.DIRECT))
+        d = g.to_dict()
+        assert d["room_count"] == 2 and d["edge_count"] == 1
+        g2 = RoomGraph.from_dict(d)
+        assert g.edge_count == g2.edge_count
 
+    def test_deterministic(self):
+        g = RoomGraph()
+        g.add_connection(RoomConnection("a", "b", ConnectionType.DIRECT))
+        g.add_connection(RoomConnection("b", "c", ConnectionType.DIRECT))
+        assert g.shortest_path("a", "c") == g.shortest_path("a", "c")
 
-def _square_walls() -> list[LogicalWall]:
-    return [
-        _wall("wall-south", _line("south", (0, 0), (10, 0))),
-        _wall("wall-east", _line("east", (10, 0), (10, 10))),
-        _wall("wall-north", _line("north", (10, 10), (0, 10))),
-        _wall("wall-west", _line("west", (0, 10), (0, 0))),
-    ]
-
-
-def _wall(wall_id: str, line: LineEntity) -> LogicalWall:
-    return LogicalWall(
-        id=wall_id,
-        wall_type=WallType.NINE_INCH_BRICK,
-        width=0.75,
-        segment_ids=(f"{wall_id}-segment",),
-        line_ids=(line.id,),
-        source_lines=(line,),
-    )
-
-
-def _line(line_id: str, start: tuple[float, float], end: tuple[float, float]) -> LineEntity:
-    return LineEntity(
-        id=line_id,
-        start=Point2D(*start),
-        end=Point2D(*end),
-        length=((end[0] - start[0]) ** 2 + (end[1] - start[1]) ** 2) ** 0.5,
-        angle=0,
-        layer="A-WALL",
-        space="test",
-    )
+    def test_no_mutation(self):
+        g = RoomGraph()
+        c = RoomConnection("a", "b", ConnectionType.DIRECT)
+        g.add_connection(c)
+        original_rooms = g.rooms
+        _ = g.neighbors("a")
+        assert g.rooms == original_rooms
