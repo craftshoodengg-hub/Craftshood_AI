@@ -1,19 +1,28 @@
-.pytest_tmp/
+# Python cache
 __pycache__/
-*.pyc
-*.pyo
-*.pyd
+*.py[cod]
+.pytest_cache/
+.pytest_tmp/
 
-.venv/
+# Virtual environments
 venv/
+.venv/
 
-*.log
-
+# Build artifacts
 build/
 dist/
 *.egg-info/
 
-.idea/
-.vscode/
+# Logs
+*.log
 
+# Temporary files
 *.tmp
+
+# Flutter
+flutter_app/.dart_tool/
+flutter_app/build/
+
+# IDE
+.vscode/
+.idea/
