@@ -9,6 +9,10 @@ from typing import Any
 from fastapi import FastAPI, HTTPException
 
 from building_model_v2.ai.generation_pipeline import GenerationPipeline
+from building_model_v2.ai.requirement_parser import RequirementParser
+from building_model_v2.ai.space_generator import SpaceProgramGenerator
+from building_model_v2.examples.sample_projects import SampleProjects
+from building_model_v2.pipeline.pipeline_engine import PipelineEngine
 
 from .models import (
     OptimizeRequest,
@@ -18,6 +22,8 @@ from .models import (
     EvaluateRequest,
     EvaluateResponse,
     GenerateResponse,
+    PipelineGenerateRequest,
+    PipelineGenerateResponse,
     HealthResponse,
     VersionResponse,
 )
@@ -67,6 +73,67 @@ async def generate(request: GenerateRequest) -> GenerateResponse:
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+
+SAMPLE_PROJECTS: dict[str, callable[[], object]] = {
+    "one_bhk": SampleProjects.one_bhk,
+    "two_bhk": SampleProjects.two_bhk,
+    "three_bhk": SampleProjects.three_bhk,
+    "duplex": SampleProjects.duplex,
+    "small_office": SampleProjects.small_office,
+    "retail_shop": SampleProjects.retail_shop,
+}
+
+
+@app.post("/pipeline/generate", response_model=PipelineGenerateResponse)
+@app.post("/api/v1/pipeline/generate", response_model=PipelineGenerateResponse)
+async def pipeline_generate(request: PipelineGenerateRequest) -> PipelineGenerateResponse:
+    """Generate a building model using the deterministic pipeline."""
+    try:
+        if request.sample_project is not None:
+            sample_name = request.sample_project
+            sample_fn = SAMPLE_PROJECTS.get(sample_name)
+            if sample_fn is None:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Unsupported sample_project '{sample_name}'. Supported values: {', '.join(sorted(SAMPLE_PROJECTS))}",
+                )
+            program = sample_fn()
+            warnings: list[str] = []
+        elif request.prompt is not None:
+            parser = RequirementParser()
+            parse_result = parser.parse(request.prompt)
+            warnings = list(parse_result.warnings)
+            if parse_result.missing_fields:
+                warnings.append(f"Missing fields: {', '.join(parse_result.missing_fields)}")
+            if parse_result.requirements.building.bedrooms is None:
+                raise HTTPException(status_code=400, detail="Unable to parse a valid space program from prompt.")
+            generator = SpaceProgramGenerator()
+            program = generator.generate(parse_result.requirements)
+            if not program.rooms:
+                raise HTTPException(status_code=400, detail="Prompt parsing produced no rooms.")
+        else:
+            raise HTTPException(status_code=400, detail="Either prompt or sample_project must be provided.")
+
+        engine = PipelineEngine()
+        result = engine.run(program)
+
+        return PipelineGenerateResponse(
+            success=result.success,
+            room_count=result.room_count,
+            floor_count=result.floor_count,
+            building=result.building.to_dict(),
+            pipeline_summary={
+                "validation_valid": result.validation_result.valid,
+                "placement_success": result.placement_result.success,
+                "refinement_success": result.refinement_result.refined_result.success,
+                "overall_success": result.success,
+            },
+            warnings=warnings,
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @app.post("/evaluate", response_model=EvaluateResponse)

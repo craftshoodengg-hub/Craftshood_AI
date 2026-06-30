@@ -33,6 +33,34 @@ class GenerateResponse(BaseModel):
     metadata: Dict[str, Any] = Field(default_factory=dict, description="Additional metadata")
 
 
+class PipelineGenerateRequest(BaseModel):
+    """Request model for the pipeline generate endpoint."""
+
+    prompt: Optional[str] = Field(
+        None,
+        min_length=1,
+        max_length=1000,
+        description="Natural language prompt for pipeline generation",
+        examples=["3BHK villa with parking and balcony"],
+    )
+    sample_project: Optional[str] = Field(
+        None,
+        description="Deterministic sample project name",
+        examples=["one_bhk", "two_bhk", "duplex"],
+    )
+
+
+class PipelineGenerateResponse(BaseModel):
+    """Response model for pipeline generate results."""
+
+    success: bool = Field(description="Whether pipeline generation succeeded")
+    room_count: int = Field(description="Number of rooms in the generated building")
+    floor_count: int = Field(description="Number of floors in the generated building")
+    building: Dict[str, Any] = Field(description="Serialized building model")
+    pipeline_summary: Dict[str, Any] = Field(description="High-level pipeline execution summary")
+    warnings: List[str] = Field(default_factory=list, description="User-facing warnings from parsing or generation")
+
+
 class HealthResponse(BaseModel):
     """Response model for the health endpoint."""
 
