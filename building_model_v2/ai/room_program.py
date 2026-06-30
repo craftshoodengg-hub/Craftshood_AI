@@ -24,7 +24,7 @@ class FloorPreference(Enum):
     ANY = "any"
 
 
-@dataclass(frozen=True, slots=True)
+@dataclass(frozen=True, slots=True, init=False)
 class RoomProgram:
     """Immutable specification for a single room in the building program."""
 
@@ -44,6 +44,58 @@ class RoomProgram:
     ventilation_required: bool = False
     vastu_preference: str | None = None
     metadata: Dict[str, Any] = field(default_factory=dict)
+
+    def __init__(
+        self,
+        *,
+        id: str | None = None,
+        room_id: str | None = None,
+        room_type: str = "",
+        name: str = "",
+        target_area: float | None = None,
+        minimum_area: float | None = None,
+        maximum_area: float | None = None,
+        privacy_level: PrivacyLevel = PrivacyLevel.PRIVATE,
+        required: bool = True,
+        floor_preference: FloorPreference = FloorPreference.ANY,
+        adjacency_preferences: FrozenSet[str] = frozenset(),
+        adjacency_requirements: FrozenSet[str] = frozenset(),
+        circulation_importance: float = 0.5,
+        natural_light_required: bool = False,
+        ventilation_required: bool = False,
+        vastu_preference: str | None = None,
+        metadata: Dict[str, Any] = None,
+    ) -> None:
+        room_id_value = id if id is not None else room_id
+        if room_id is not None and id is not None and id != room_id:
+            raise ValueError("id and room_id must be the same if both provided")
+        if room_id_value is None:
+            raise ValueError("RoomProgram requires an 'id' or 'room_id'")
+
+        object.__setattr__(self, "id", room_id_value)
+        object.__setattr__(self, "room_type", room_type)
+        object.__setattr__(self, "name", name)
+        object.__setattr__(self, "target_area", target_area)
+        object.__setattr__(self, "minimum_area", minimum_area)
+        object.__setattr__(self, "maximum_area", maximum_area)
+        object.__setattr__(self, "privacy_level", privacy_level)
+        object.__setattr__(self, "required", required)
+        object.__setattr__(self, "floor_preference", floor_preference)
+        object.__setattr__(
+            self,
+            "adjacency_preferences",
+            frozenset(adjacency_preferences),
+        )
+        object.__setattr__(
+            self,
+            "adjacency_requirements",
+            frozenset(adjacency_requirements),
+        )
+        object.__setattr__(self, "circulation_importance", circulation_importance)
+        object.__setattr__(self, "natural_light_required", natural_light_required)
+        object.__setattr__(self, "ventilation_required", ventilation_required)
+        object.__setattr__(self, "vastu_preference", vastu_preference)
+        object.__setattr__(self, "metadata", dict(metadata or {}))
 
     def to_dict(self) -> Dict[str, Any]:
         return {

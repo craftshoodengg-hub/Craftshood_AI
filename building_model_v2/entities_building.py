@@ -50,8 +50,14 @@ class Building(BaseEntity):
     north_direction: float = 0.0
     units: str = "imperial"
     floor_ids: tuple[str, ...] = ()
+    room_ids: tuple[str, ...] = ()
     metadata: dict[str, Any] = field(default_factory=dict)
     
+    @property
+    def room_count(self) -> int:
+        """Get the number of rooms in this building."""
+        return len(self.room_ids)
+
     @property
     def floor_count(self) -> int:
         """Get the number of floors in this building.
@@ -150,8 +156,10 @@ class Building(BaseEntity):
             "north_direction": self.north_direction,
             "units": self.units,
             "floor_ids": list(self.floor_ids),
+            "room_ids": list(self.room_ids),
             "computed": {
                 "floor_count": self.floor_count,
+                "room_count": self.room_count,
                 "has_multiple_floors": self.has_multiple_floors,
                 "ground_floor_id": self.ground_floor_id,
                 "top_floor_id": self.top_floor_id,
@@ -171,6 +179,7 @@ class Building(BaseEntity):
         """
         base = BaseEntity.from_dict(payload)
         floor_ids = payload.get("floor_ids", [])
+        room_ids = payload.get("room_ids", [])
         return cls(
             id=base.id,
             created_at=base.created_at,
@@ -184,6 +193,7 @@ class Building(BaseEntity):
             north_direction=float(payload.get("north_direction", 0.0)),
             units=str(payload.get("units", "imperial")),
             floor_ids=tuple(floor_ids),
+            room_ids=tuple(room_ids),
         )
     
     @classmethod
@@ -198,6 +208,7 @@ class Building(BaseEntity):
         north_direction: float = 0.0,
         units: str = "imperial",
         floor_ids: tuple[str, ...] | None = None,
+        room_ids: tuple[str, ...] | None = None,
         metadata: dict[str, Any] | None = None,
     ) -> Building:
         """Factory method to create a Building.
