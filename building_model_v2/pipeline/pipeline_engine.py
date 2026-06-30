@@ -17,6 +17,8 @@ from ..layout.room_placement_engine import RoomPlacementEngine
 from ..layout.placement_result import PlacementResult
 from ..layout.placement_validator import PlacementValidator
 from .pipeline_result import PipelineResult
+from .design_request import DesignRequest
+from .vastu.vastu_engine import VastuEngine
 
 
 class PipelineEngine:
@@ -26,7 +28,7 @@ class PipelineEngine:
     by coordinating existing engines in a fixed order.
     """
 
-    def __init__(self) -> None:
+    def __init__(self, vastu_engine: VastuEngine | None = None) -> None:
         """Initialize the pipeline engine with all sub-engines."""
         self._architect_engine = ArchitectEngine()
         self._circulation_planner = CirculationPlanner()
@@ -36,12 +38,14 @@ class PipelineEngine:
         self._placement_validator = PlacementValidator()
         self._layout_refiner = LayoutRefiner()
         self._building_converter = BuildingModelConverter()
+        self._vastu_engine = vastu_engine if vastu_engine is not None else VastuEngine()
 
-    def run(self, space_program: SpaceProgram) -> PipelineResult:
+    def run(self, space_program: SpaceProgram, design_request: DesignRequest | None = None) -> PipelineResult:
         """Execute the complete pipeline.
 
         Args:
             space_program: The space program to process.
+            design_request: Optional design request for advisory analysis.
 
         Returns:
             PipelineResult containing all stage results.
@@ -64,6 +68,17 @@ class PipelineEngine:
             refinement_result = self._layout_refiner.refine(placement_result)
             building = self._building_converter.convert(refinement_result)
 
+            vastu_results = []
+            vastu_score = 0.0
+            vastu_warnings: list[str] = []
+            vastu_suggestions: list[str] = []
+
+            if self._vastu_engine is not None and design_request is not None:
+                vastu_results = self._vastu_engine.analyze(design_request)
+                vastu_score = self._vastu_engine.overall_score(vastu_results)
+                vastu_warnings = self._vastu_engine.warnings(vastu_results)
+                vastu_suggestions = self._vastu_engine.suggestions(vastu_results)
+
             return PipelineResult(
                 architect_result=architect_result,
                 circulation_result=circulation_result,
@@ -74,6 +89,10 @@ class PipelineEngine:
                 validation_result=validation_result,
                 refinement_result=refinement_result,
                 building=building,
+                vastu_results=vastu_results,
+                vastu_score=vastu_score,
+                vastu_warnings=vastu_warnings,
+                vastu_suggestions=vastu_suggestions,
             )
 
         except Exception as exc:

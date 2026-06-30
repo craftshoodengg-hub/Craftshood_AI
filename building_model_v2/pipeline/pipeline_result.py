@@ -4,10 +4,11 @@ Immutable dataclass representing the result of the end-to-end pipeline.
 """
 from __future__ import annotations
 
-from dataclasses import dataclass
-from typing import Any, Dict
+from dataclasses import dataclass, field
+from typing import Any, Dict, List
 
 from ..architect.architect_result import ArchitectResult
+from .vastu.vastu_result import VastuResult
 from ..architect.circulation_metrics import CirculationMetrics
 from ..architect.circulation_optimization_result import CirculationOptimizationResult
 from ..architect.circulation_result import CirculationResult
@@ -43,6 +44,10 @@ class PipelineResult:
     validation_result: PlacementValidationResult
     refinement_result: LayoutRefinementResult
     building: Building
+    vastu_results: List[VastuResult] = field(default_factory=list)
+    vastu_score: float = 0.0
+    vastu_warnings: List[str] = field(default_factory=list)
+    vastu_suggestions: List[str] = field(default_factory=list)
 
     @property
     def success(self) -> bool:
@@ -75,6 +80,10 @@ class PipelineResult:
             "validation_result": self.validation_result.to_dict(),
             "refinement_result": self.refinement_result.to_dict(),
             "building": self.building.to_dict(),
+            "vastu_results": [result.to_dict() for result in self.vastu_results],
+            "vastu_score": self.vastu_score,
+            "vastu_warnings": list(self.vastu_warnings),
+            "vastu_suggestions": list(self.vastu_suggestions),
             "success": self.success,
             "room_count": self.room_count,
             "floor_count": self.floor_count,

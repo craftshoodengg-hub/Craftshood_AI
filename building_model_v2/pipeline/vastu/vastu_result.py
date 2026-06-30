@@ -20,3 +20,22 @@ class VastuResult:
 
     def has_suggestions(self) -> bool:
         return bool(self.suggestions)
+
+    def to_dict(self) -> dict[str, object]:
+        return {
+            "passed": self.passed,
+            "score": self.score,
+            "warnings": list(self.warnings),
+            "suggestions": list(self.suggestions),
+            "rule_name": self.rule_name,
+        }
+
+    @classmethod
+    def from_dict(cls, data: dict[str, object]) -> "VastuResult":
+        return cls(
+            passed=bool(data["passed"]),
+            score=float(data["score"]),
+            warnings=list(data.get("warnings", [])),
+            suggestions=list(data.get("suggestions", [])),
+            rule_name=str(data.get("rule_name", "")),
+        )
