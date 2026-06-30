@@ -5,10 +5,12 @@ from .pipeline_result import PipelineResult
 from .pipeline_engine import PipelineEngine
 from .design_request import DesignRequest
 from .requirement_parser import RequirementParser
+from .request_validator import RequestValidator
 
 __all__ = [
     "PipelineEngine",
     "PipelineResult",
     "DesignRequest",
     "RequirementParser",
+    "RequestValidator",
 ]
