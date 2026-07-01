@@ -3,8 +3,11 @@ from __future__ import annotations
 
 from .dwg_metadata import DwgMetadata
 from .dwg_reference import DwgReference
+from .feature_extractor import BaseFeatureExtractor, DummyFeatureExtractor
 
 __all__ = [
     "DwgMetadata",
     "DwgReference",
+    "BaseFeatureExtractor",
+    "DummyFeatureExtractor",
 ]
