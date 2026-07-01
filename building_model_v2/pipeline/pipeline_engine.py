@@ -4,6 +4,7 @@ Deterministic orchestrator that executes the complete Craftshood AI workflow.
 """
 from __future__ import annotations
 
+from dataclasses import replace
 from ..ai.space_program import SpaceProgram
 from ..architect.architect_engine import ArchitectEngine
 from ..architect.circulation_evaluator import CirculationEvaluator
@@ -16,6 +17,9 @@ from ..layout.layout_refiner import LayoutRefiner
 from ..layout.room_placement_engine import RoomPlacementEngine
 from ..layout.placement_result import PlacementResult
 from ..layout.placement_validator import PlacementValidator
+from .design_advisor.design_advisor_engine import DesignAdvisorEngine
+from .design_advisor.advice_result import AdviceResult
+from .design_advisor.design_advice import DesignAdvice
 from .pipeline_result import PipelineResult
 from .design_request import DesignRequest
 from .vastu.vastu_engine import VastuEngine
@@ -28,7 +32,11 @@ class PipelineEngine:
     by coordinating existing engines in a fixed order.
     """
 
-    def __init__(self, vastu_engine: VastuEngine | None = None) -> None:
+    def __init__(
+        self,
+        vastu_engine: VastuEngine | None = None,
+        design_advisor_engine: DesignAdvisorEngine | None = None,
+    ) -> None:
         """Initialize the pipeline engine with all sub-engines."""
         self._architect_engine = ArchitectEngine()
         self._circulation_planner = CirculationPlanner()
@@ -39,6 +47,9 @@ class PipelineEngine:
         self._layout_refiner = LayoutRefiner()
         self._building_converter = BuildingModelConverter()
         self._vastu_engine = vastu_engine if vastu_engine is not None else VastuEngine()
+        self._design_advisor_engine = (
+            design_advisor_engine if design_advisor_engine is not None else DesignAdvisorEngine()
+        )
 
     def run(self, space_program: SpaceProgram, design_request: DesignRequest | None = None) -> PipelineResult:
         """Execute the complete pipeline.
@@ -72,6 +83,11 @@ class PipelineEngine:
             vastu_score = 0.0
             vastu_warnings: list[str] = []
             vastu_suggestions: list[str] = []
+            advisor_results: list[AdviceResult] = []
+            advisor_score = 0.0
+            advisor_strengths: list[str] = []
+            advisor_weaknesses: list[str] = []
+            advisor_advice: list[DesignAdvice] = []
 
             if self._vastu_engine is not None and design_request is not None:
                 vastu_results = self._vastu_engine.analyze(design_request)
@@ -79,7 +95,7 @@ class PipelineEngine:
                 vastu_warnings = self._vastu_engine.warnings(vastu_results)
                 vastu_suggestions = self._vastu_engine.suggestions(vastu_results)
 
-            return PipelineResult(
+            result = PipelineResult(
                 architect_result=architect_result,
                 circulation_result=circulation_result,
                 circulation_metrics=circulation_metrics,
@@ -93,7 +109,33 @@ class PipelineEngine:
                 vastu_score=vastu_score,
                 vastu_warnings=vastu_warnings,
                 vastu_suggestions=vastu_suggestions,
+                advisor_results=advisor_results,
+                advisor_score=advisor_score,
+                advisor_strengths=advisor_strengths,
+                advisor_weaknesses=advisor_weaknesses,
+                advisor_advice=advisor_advice,
             )
+
+            if self._design_advisor_engine is not None and design_request is not None:
+                advisor_results = self._design_advisor_engine.analyze(
+                    design_request,
+                    building,
+                    result,
+                )
+                advisor_score = self._design_advisor_engine.overall_score(advisor_results)
+                advisor_strengths = self._design_advisor_engine.strengths(advisor_results)
+                advisor_weaknesses = self._design_advisor_engine.weaknesses(advisor_results)
+                advisor_advice = self._design_advisor_engine.advice(advisor_results)
+                result = replace(
+                    result,
+                    advisor_results=advisor_results,
+                    advisor_score=advisor_score,
+                    advisor_strengths=advisor_strengths,
+                    advisor_weaknesses=advisor_weaknesses,
+                    advisor_advice=advisor_advice,
+                )
+
+            return result
 
         except Exception as exc:
             raise RuntimeError(f"Pipeline stage failed: {exc}") from exc

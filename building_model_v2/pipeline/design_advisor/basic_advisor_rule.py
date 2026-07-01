@@ -22,9 +22,8 @@ class BasicAdvisorRule(BaseAdvisorRule):
         building_model: Any = None,
         pipeline_result: Any = None,
     ) -> AdviceResult:
-        result = AdviceResult()
         if design_request is None:
-            return result
+            return AdviceResult()
 
         advice: list[DesignAdvice] = []
         strengths: list[str] = []

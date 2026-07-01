@@ -8,6 +8,8 @@ from dataclasses import dataclass, field
 from typing import Any, Dict, List
 
 from ..architect.architect_result import ArchitectResult
+from .design_advisor.advice_result import AdviceResult
+from .design_advisor.design_advice import DesignAdvice
 from .vastu.vastu_result import VastuResult
 from ..architect.circulation_metrics import CirculationMetrics
 from ..architect.circulation_optimization_result import CirculationOptimizationResult
@@ -48,6 +50,11 @@ class PipelineResult:
     vastu_score: float = 0.0
     vastu_warnings: List[str] = field(default_factory=list)
     vastu_suggestions: List[str] = field(default_factory=list)
+    advisor_results: List[AdviceResult] = field(default_factory=list)
+    advisor_score: float = 0.0
+    advisor_strengths: List[str] = field(default_factory=list)
+    advisor_weaknesses: List[str] = field(default_factory=list)
+    advisor_advice: List[DesignAdvice] = field(default_factory=list)
 
     @property
     def success(self) -> bool:
@@ -84,6 +91,11 @@ class PipelineResult:
             "vastu_score": self.vastu_score,
             "vastu_warnings": list(self.vastu_warnings),
             "vastu_suggestions": list(self.vastu_suggestions),
+            "advisor_results": [result.to_dict() for result in self.advisor_results],
+            "advisor_score": self.advisor_score,
+            "advisor_strengths": list(self.advisor_strengths),
+            "advisor_weaknesses": list(self.advisor_weaknesses),
+            "advisor_advice": [advice.to_dict() for advice in self.advisor_advice],
             "success": self.success,
             "room_count": self.room_count,
             "floor_count": self.floor_count,
@@ -101,6 +113,12 @@ class PipelineResult:
         validation_result = PlacementValidationResult.from_dict(data["validation_result"])
         refinement_result = LayoutRefinementResult.from_dict(data["refinement_result"])
         building = Building.from_dict(data["building"])
+        vastu_results = [VastuResult.from_dict(item) for item in data.get("vastu_results", [])]
+        advisor_results = [AdviceResult.from_dict(item) for item in data.get("advisor_results", [])]
+        advisor_score = float(data.get("advisor_score", 0.0))
+        advisor_strengths = list(data.get("advisor_strengths", []))
+        advisor_weaknesses = list(data.get("advisor_weaknesses", []))
+        advisor_advice = [DesignAdvice.from_dict(item) for item in data.get("advisor_advice", [])]
         return cls(
             architect_result=architect_result,
             circulation_result=circulation_result,
@@ -111,4 +129,10 @@ class PipelineResult:
             validation_result=validation_result,
             refinement_result=refinement_result,
             building=building,
+            vastu_results=vastu_results,
+            advisor_results=advisor_results,
+            advisor_score=advisor_score,
+            advisor_strengths=advisor_strengths,
+            advisor_weaknesses=advisor_weaknesses,
+            advisor_advice=advisor_advice,
         )
