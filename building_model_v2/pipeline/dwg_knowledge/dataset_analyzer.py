@@ -7,7 +7,28 @@ from typing import Any
 
 import ezdxf
 
+from .dwg_conversion_guide import (
+    recommended_converted_folder,
+    conversion_instructions,
+    validate_converted_folder,
+)
 from .ezdxf_feature_extractor import EzDXFFeatureExtractor
+from .room_label_detector import RoomLabelDetector
+
+
+ROOM_TYPES = [
+    "Bedroom",
+    "Kitchen",
+    "Living",
+    "Dining",
+    "Toilet",
+    "Balcony",
+    "Parking",
+    "Utility",
+    "Pooja",
+    "Stair",
+    "Store",
+]
 
 
 class DatasetAnalyzer:
@@ -15,6 +36,7 @@ class DatasetAnalyzer:
 
     def __init__(self, extractor: EzDXFFeatureExtractor | None = None) -> None:
         self.extractor = extractor if extractor is not None else EzDXFFeatureExtractor()
+        self.room_label_detector = RoomLabelDetector()
 
     def analyze_directory(
         self,
@@ -47,6 +69,8 @@ class DatasetAnalyzer:
             "layer_names": Counter(),
             "block_names": Counter(),
             "text_values": Counter(),
+            "room_totals": {room_type: 0 for room_type in ROOM_TYPES},
+            "total_rooms": 0,
             "file_summaries": [],
         }
 
@@ -70,6 +94,14 @@ class DatasetAnalyzer:
             for text in result["texts"]:
                 self._safe_increment(summary["text_values"], text, 1)
 
+            room_summary = result.get("rooms", [])
+            room_count = len(room_summary)
+            summary["total_rooms"] += room_count
+            for room in room_summary:
+                room_type = room.get("room_type")
+                if room_type in summary["room_totals"]:
+                    summary["room_totals"][room_type] += 1
+
             summary["file_summaries"].append(
                 {
                     "file_path": result["file_path"],
@@ -77,6 +109,8 @@ class DatasetAnalyzer:
                     "layers": sorted(set(result["layers"])),
                     "blocks": sorted(set(result["blocks"])),
                     "texts": result["texts"],
+                    "rooms": room_summary,
+                    "room_count": room_count,
                 }
             )
 
@@ -88,6 +122,8 @@ class DatasetAnalyzer:
             "layer_names": dict(summary["layer_names"]),
             "block_names": dict(summary["block_names"]),
             "text_values": dict(summary["text_values"]),
+            "room_totals": summary["room_totals"],
+            "total_rooms": summary["total_rooms"],
             "file_summaries": summary["file_summaries"],
         }
 
@@ -98,6 +134,7 @@ class DatasetAnalyzer:
             raise ValueError(self._failure_reason(file_path, exc)) from exc
 
         modelspace = document.modelspace()
+        rooms = self.room_label_detector.detect(document)
         entity_count = len(modelspace)
         layers: list[str] = []
         blocks: list[str] = []
@@ -124,6 +161,8 @@ class DatasetAnalyzer:
             "layers": layers,
             "blocks": blocks,
             "texts": sorted(texts),
+            "rooms": rooms,
+            "room_count": len(rooms),
         }
 
     def _failure_reason(self, file_path: str, exc: Exception) -> str:

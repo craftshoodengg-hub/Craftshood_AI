@@ -43,6 +43,29 @@ class DatasetReportExporter:
         lines.extend(self._format_top_counts(summary.get("text_values", {})))
         lines.append("")
 
+        lines.append("## Room Statistics")
+        room_totals = summary.get("room_totals", {})
+        total_rooms = summary.get("total_rooms", 0)
+        lines.append(f"- **Total Rooms:** {total_rooms}")
+        if room_totals:
+            for room_type in [
+                "Bedroom",
+                "Kitchen",
+                "Living",
+                "Dining",
+                "Toilet",
+                "Balcony",
+                "Parking",
+                "Utility",
+                "Pooja",
+                "Stair",
+                "Store",
+            ]:
+                lines.append(f"- **{room_type}**: {room_totals.get(room_type, 0)}")
+        else:
+            lines.append("No room statistics available.")
+        lines.append("")
+
         lines.append("## Failed Files")
         failed_files = summary.get("failed_files", [])
         if failed_files:
