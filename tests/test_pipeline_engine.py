@@ -5,6 +5,8 @@ import pytest
 
 from building_model_v2.ai.room_program import FloorPreference, PrivacyLevel, RoomProgram
 from building_model_v2.ai.space_program import SpaceProgram
+from building_model_v2.pipeline.design_request import DesignRequest
+from building_model_v2.pipeline.dwg_knowledge import DwgMetadata, DwgReference, RetrievalService
 from building_model_v2.pipeline.pipeline_engine import PipelineEngine
 from building_model_v2.pipeline.pipeline_result import PipelineResult
 from building_model_v2.types import RoomType
@@ -149,6 +151,105 @@ class TestPipelineEngineSerialization:
         restored = PipelineResult.from_dict(result.to_dict())
         assert restored.success == result.success
         assert restored.room_count == result.room_count
+
+
+class TestPipelineEngineRetrieval:
+    """Tests for retrieval metadata integration."""
+
+    def test_pipeline_retrieval_metadata_is_populated(self) -> None:
+        """Pipeline returns retrieval metadata when retrieval service is configured."""
+        program = _make_program(
+            _make_room("living", RoomType.LIVING, target_area=16.0),
+        )
+        retrieval_service = RetrievalService()
+        retrieval_service.add_reference(
+            DwgReference(
+                id="ref-1",
+                metadata=DwgMetadata(
+                    file_path="/tmp/ref-1.dwg",
+                    project_type="residential",
+                    plot_width=10.0,
+                    plot_depth=20.0,
+                    floors=1,
+                    bedrooms=2,
+                    bathrooms=1,
+                    orientation="north",
+                    tags=["garden"],
+                ),
+                source_file="ref-1.dwg",
+                extracted_features={},
+            )
+        )
+        request = DesignRequest(
+            project_type="residential",
+            plot_width=10.0,
+            plot_depth=20.0,
+            floors=1,
+            bedrooms=2,
+            bathrooms=1,
+            parking=1,
+            kitchen_type="open",
+            pooja_room=False,
+            living_room=True,
+            dining_room=True,
+            staircase=True,
+            orientation="north",
+            special_requirements=("garden",),
+        )
+        engine = PipelineEngine(retrieval_service=retrieval_service)
+        result = engine.run(program, design_request=request)
+
+        assert result.retrieval_count == 1
+        assert result.retrieval_score > 0.0
+        assert len(result.reference_designs) == 1
+
+    def test_pipeline_retrieval_serialization_preserves_metadata(self) -> None:
+        """PipelineResult preserves retrieval metadata after serialization."""
+        program = _make_program(
+            _make_room("living", RoomType.LIVING, target_area=16.0),
+        )
+        retrieval_service = RetrievalService()
+        retrieval_service.add_reference(
+            DwgReference(
+                id="ref-1",
+                metadata=DwgMetadata(
+                    file_path="/tmp/ref-1.dwg",
+                    project_type="residential",
+                    plot_width=10.0,
+                    plot_depth=20.0,
+                    floors=1,
+                    bedrooms=2,
+                    bathrooms=1,
+                    orientation="north",
+                    tags=["garden"],
+                ),
+                source_file="ref-1.dwg",
+                extracted_features={},
+            )
+        )
+        request = DesignRequest(
+            project_type="residential",
+            plot_width=10.0,
+            plot_depth=20.0,
+            floors=1,
+            bedrooms=2,
+            bathrooms=1,
+            parking=1,
+            kitchen_type="open",
+            pooja_room=False,
+            living_room=True,
+            dining_room=True,
+            staircase=True,
+            orientation="north",
+            special_requirements=("garden",),
+        )
+        engine = PipelineEngine(retrieval_service=retrieval_service)
+        result = engine.run(program, design_request=request)
+        restored = PipelineResult.from_dict(result.to_dict())
+
+        assert restored.retrieval_count == result.retrieval_count
+        assert restored.retrieval_score == result.retrieval_score
+        assert [reference.id for reference in restored.reference_designs] == [reference.id for reference in result.reference_designs]
 
 
 class TestPipelineEngineDeterministic:

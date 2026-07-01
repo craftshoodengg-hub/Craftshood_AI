@@ -20,6 +20,7 @@ from ..layout.placement_validator import PlacementValidator
 from .design_advisor.design_advisor_engine import DesignAdvisorEngine
 from .design_advisor.advice_result import AdviceResult
 from .design_advisor.design_advice import DesignAdvice
+from .dwg_knowledge import DwgReference, RetrievalService, SimilarityQuery
 from .pipeline_result import PipelineResult
 from .design_request import DesignRequest
 from .vastu.vastu_engine import VastuEngine
@@ -36,6 +37,7 @@ class PipelineEngine:
         self,
         vastu_engine: VastuEngine | None = None,
         design_advisor_engine: DesignAdvisorEngine | None = None,
+        retrieval_service: RetrievalService | None = None,
     ) -> None:
         """Initialize the pipeline engine with all sub-engines."""
         self._architect_engine = ArchitectEngine()
@@ -50,6 +52,7 @@ class PipelineEngine:
         self._design_advisor_engine = (
             design_advisor_engine if design_advisor_engine is not None else DesignAdvisorEngine()
         )
+        self._retrieval_service = retrieval_service
 
     def run(self, space_program: SpaceProgram, design_request: DesignRequest | None = None) -> PipelineResult:
         """Execute the complete pipeline.
@@ -88,12 +91,32 @@ class PipelineEngine:
             advisor_strengths: list[str] = []
             advisor_weaknesses: list[str] = []
             advisor_advice: list[DesignAdvice] = []
+            reference_designs: list[DwgReference] = []
+            retrieval_score = 0.0
+            retrieval_count = 0
 
             if self._vastu_engine is not None and design_request is not None:
                 vastu_results = self._vastu_engine.analyze(design_request)
                 vastu_score = self._vastu_engine.overall_score(vastu_results)
                 vastu_warnings = self._vastu_engine.warnings(vastu_results)
                 vastu_suggestions = self._vastu_engine.suggestions(vastu_results)
+
+            if self._retrieval_service is not None and design_request is not None:
+                similarity_query = SimilarityQuery(
+                    project_type=design_request.project_type,
+                    plot_width=design_request.plot_width,
+                    plot_depth=design_request.plot_depth,
+                    floors=design_request.floors,
+                    bedrooms=design_request.bedrooms,
+                    bathrooms=design_request.bathrooms,
+                    orientation=design_request.orientation,
+                    tags=list(design_request.special_requirements),
+                )
+                retrieval_results = self._retrieval_service.top_matches(similarity_query, 5)
+                retrieval_count = len(retrieval_results)
+                if retrieval_count > 0:
+                    retrieval_score = sum(result.score for result in retrieval_results) / retrieval_count
+                    reference_designs = [result.reference for result in retrieval_results]
 
             result = PipelineResult(
                 architect_result=architect_result,
@@ -114,6 +137,9 @@ class PipelineEngine:
                 advisor_strengths=advisor_strengths,
                 advisor_weaknesses=advisor_weaknesses,
                 advisor_advice=advisor_advice,
+                reference_designs=reference_designs,
+                retrieval_score=retrieval_score,
+                retrieval_count=retrieval_count,
             )
 
             if self._design_advisor_engine is not None and design_request is not None:

@@ -10,6 +10,7 @@ from typing import Any, Dict, List
 from ..architect.architect_result import ArchitectResult
 from .design_advisor.advice_result import AdviceResult
 from .design_advisor.design_advice import DesignAdvice
+from .dwg_knowledge import DwgReference
 from .vastu.vastu_result import VastuResult
 from ..architect.circulation_metrics import CirculationMetrics
 from ..architect.circulation_optimization_result import CirculationOptimizationResult
@@ -55,6 +56,9 @@ class PipelineResult:
     advisor_strengths: List[str] = field(default_factory=list)
     advisor_weaknesses: List[str] = field(default_factory=list)
     advisor_advice: List[DesignAdvice] = field(default_factory=list)
+    reference_designs: List[DwgReference] = field(default_factory=list)
+    retrieval_score: float = 0.0
+    retrieval_count: int = 0
 
     @property
     def success(self) -> bool:
@@ -96,6 +100,9 @@ class PipelineResult:
             "advisor_strengths": list(self.advisor_strengths),
             "advisor_weaknesses": list(self.advisor_weaknesses),
             "advisor_advice": [advice.to_dict() for advice in self.advisor_advice],
+            "reference_designs": [reference.to_dict() for reference in self.reference_designs],
+            "retrieval_score": self.retrieval_score,
+            "retrieval_count": self.retrieval_count,
             "success": self.success,
             "room_count": self.room_count,
             "floor_count": self.floor_count,
@@ -119,6 +126,9 @@ class PipelineResult:
         advisor_strengths = list(data.get("advisor_strengths", []))
         advisor_weaknesses = list(data.get("advisor_weaknesses", []))
         advisor_advice = [DesignAdvice.from_dict(item) for item in data.get("advisor_advice", [])]
+        reference_designs = [DwgReference.from_dict(item) for item in data.get("reference_designs", [])]
+        retrieval_score = float(data.get("retrieval_score", 0.0))
+        retrieval_count = int(data.get("retrieval_count", 0))
         return cls(
             architect_result=architect_result,
             circulation_result=circulation_result,
@@ -135,4 +145,7 @@ class PipelineResult:
             advisor_strengths=advisor_strengths,
             advisor_weaknesses=advisor_weaknesses,
             advisor_advice=advisor_advice,
+            reference_designs=reference_designs,
+            retrieval_score=retrieval_score,
+            retrieval_count=retrieval_count,
         )
