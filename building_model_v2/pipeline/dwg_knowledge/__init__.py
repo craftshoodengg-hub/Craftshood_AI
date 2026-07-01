@@ -6,6 +6,7 @@ from .dwg_reference import DwgReference
 from .feature_extractor import BaseFeatureExtractor, DummyFeatureExtractor
 from .knowledge_repository import KnowledgeRepository
 from .similarity_query import SimilarityQuery, SimilarityResult
+from .similarity_scorer import SimilarityScorer
 
 __all__ = [
     "DwgMetadata",
@@ -15,4 +16,5 @@ __all__ = [
     "KnowledgeRepository",
     "SimilarityQuery",
     "SimilarityResult",
+    "SimilarityScorer",
 ]
