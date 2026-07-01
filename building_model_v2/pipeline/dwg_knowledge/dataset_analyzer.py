@@ -42,6 +42,7 @@ class DatasetAnalyzer:
         summary = {
             "files_scanned": 0,
             "files_failed": 0,
+            "failed_files": [],
             "entity_totals": Counter(),
             "layer_names": Counter(),
             "block_names": Counter(),
@@ -50,9 +51,13 @@ class DatasetAnalyzer:
         }
 
         for file_path in file_paths:
-            result = self.analyze_file(str(file_path))
-            if result is None:
+            try:
+                result = self.analyze_file(str(file_path))
+            except ValueError as exc:
                 summary["files_failed"] += 1
+                summary["failed_files"].append(
+                    {"file_path": str(file_path), "reason": str(exc)}
+                )
                 continue
 
             summary["files_scanned"] += 1
@@ -78,6 +83,7 @@ class DatasetAnalyzer:
         return {
             "files_scanned": summary["files_scanned"],
             "files_failed": summary["files_failed"],
+            "failed_files": summary["failed_files"],
             "entity_totals": dict(summary["entity_totals"]),
             "layer_names": dict(summary["layer_names"]),
             "block_names": dict(summary["block_names"]),
@@ -85,11 +91,11 @@ class DatasetAnalyzer:
             "file_summaries": summary["file_summaries"],
         }
 
-    def analyze_file(self, file_path: str) -> dict[str, Any] | None:
+    def analyze_file(self, file_path: str) -> dict[str, Any]:
         try:
             document = ezdxf.readfile(file_path)
-        except (ezdxf.DXFError, IOError, OSError):
-            return None
+        except (ezdxf.DXFError, IOError, OSError) as exc:
+            raise ValueError(self._failure_reason(file_path, exc)) from exc
 
         modelspace = document.modelspace()
         entity_count = len(modelspace)
@@ -119,6 +125,14 @@ class DatasetAnalyzer:
             "blocks": blocks,
             "texts": sorted(texts),
         }
+
+    def _failure_reason(self, file_path: str, exc: Exception) -> str:
+        if Path(file_path).suffix.lower() == ".dwg":
+            return (
+                f"Failed to read DWG file '{file_path}'. Native DWG may require conversion to DXF "
+                "before analysis."
+            )
+        return f"Failed to read file '{file_path}'. File may be invalid or require DXF conversion."
 
     def _safe_increment(self, counter: Counter[str, int], key: str, amount: int = 1) -> None:
         if key in counter:

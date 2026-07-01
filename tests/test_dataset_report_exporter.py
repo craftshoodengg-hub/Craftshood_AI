@@ -43,6 +43,7 @@ def test_to_markdown_includes_sections() -> None:
         "layer_names": {"A-WALL": 1},
         "block_names": {"DOOR_BLOCK": 1},
         "text_values": {"Door": 1},
+        "failed_files": [],
         "file_summaries": [
             {
                 "file_path": "a.dxf",
@@ -61,6 +62,7 @@ def test_to_markdown_includes_sections() -> None:
     assert "## Top Layers" in markdown
     assert "## Top Blocks" in markdown
     assert "## Top Text Values" in markdown
+    assert "## Failed Files" in markdown
     assert "## File Summaries" in markdown
     assert "**A-WALL**: 1" in markdown
     assert "**DOOR_BLOCK**: 1" in markdown
@@ -83,7 +85,16 @@ def test_save_json_writes_file(tmp_path: Path) -> None:
 
 def test_save_markdown_writes_file(tmp_path: Path) -> None:
     exporter = DatasetReportExporter()
-    summary = {"files_scanned": 0, "files_failed": 0, "entity_totals": {}, "layer_names": {}, "block_names": {}, "text_values": {}, "file_summaries": []}
+    summary = {
+        "files_scanned": 0,
+        "files_failed": 0,
+        "failed_files": [],
+        "entity_totals": {},
+        "layer_names": {},
+        "block_names": {},
+        "text_values": {},
+        "file_summaries": [],
+    }
     path = str(tmp_path / "report.md")
 
     output_path = exporter.save_markdown(summary, path)
@@ -93,7 +104,33 @@ def test_save_markdown_writes_file(tmp_path: Path) -> None:
     assert "# DWG Dataset Analysis Report" in content
     assert "No entity totals available." in content
     assert "No items available." in content
+    assert "No failed files." in content
     assert "No file summaries available." in content
+
+
+def test_markdown_includes_failed_files_section() -> None:
+    exporter = DatasetReportExporter()
+    summary = {
+        "files_scanned": 0,
+        "files_failed": 1,
+        "failed_files": [
+            {
+                "file_path": "invalid.dwg",
+                "reason": "Failed to read DWG file 'invalid.dwg'. Native DWG may require conversion to DXF before analysis.",
+            }
+        ],
+        "entity_totals": {},
+        "layer_names": {},
+        "block_names": {},
+        "text_values": {},
+        "file_summaries": [],
+    }
+
+    markdown = exporter.to_markdown(summary)
+
+    assert "## Failed Files" in markdown
+    assert "invalid.dwg" in markdown
+    assert "Failed to read DWG file" in markdown
 
 
 def test_to_json_is_deterministic() -> None:
@@ -101,6 +138,7 @@ def test_to_json_is_deterministic() -> None:
     summary = {
         "files_scanned": 1,
         "files_failed": 1,
+        "failed_files": [{"file_path": "bad.dwg", "reason": "Failed to read DWG file"}],
         "entity_totals": {"entity_count": 2, "lines": 1},
         "layer_names": {"A-WALL": 1, "B-WALL": 2},
         "block_names": {"DOOR_BLOCK": 1},

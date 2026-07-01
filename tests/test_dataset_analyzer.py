@@ -133,6 +133,13 @@ def test_analyze_directory_invalid_files_skipped(tmp_path: Path) -> None:
 
     assert summary["files_scanned"] == 1
     assert summary["files_failed"] == 1
+    assert summary["failed_files"] == [
+        {
+            "file_path": str(invalid_path),
+            "reason": summary["failed_files"][0]["reason"],
+        }
+    ]
+    assert "Failed to read file" in summary["failed_files"][0]["reason"]
     assert summary["entity_totals"] == {"entity_count": 1}
     assert summary["layer_names"] == {"A-WALL": 1}
     assert summary["file_summaries"][0]["file_path"].endswith("valid.dxf")
@@ -175,3 +182,17 @@ def test_analyze_directory_text_value_counting(tmp_path: Path) -> None:
     assert summary["files_scanned"] == 1
     assert summary["text_values"] == {"Door": 2, "Window": 1}
     assert summary["file_summaries"][0]["texts"] == ["Door", "Door", "Window"]
+
+
+def test_analyze_directory_dwg_failure_reasons(tmp_path: Path) -> None:
+    invalid_path = tmp_path / "invalid.dwg"
+    invalid_path.write_text("not a dwg", encoding="utf-8")
+    analyzer = DatasetAnalyzer()
+
+    summary = analyzer.analyze_directory(str(tmp_path), recursive=False)
+
+    assert summary["files_scanned"] == 0
+    assert summary["files_failed"] == 1
+    assert len(summary["failed_files"]) == 1
+    assert summary["failed_files"][0]["file_path"] == str(invalid_path)
+    assert "Failed to read DWG file" in summary["failed_files"][0]["reason"]

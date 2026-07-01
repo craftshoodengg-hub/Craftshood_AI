@@ -43,6 +43,15 @@ class DatasetReportExporter:
         lines.extend(self._format_top_counts(summary.get("text_values", {})))
         lines.append("")
 
+        lines.append("## Failed Files")
+        failed_files = summary.get("failed_files", [])
+        if failed_files:
+            for failed in failed_files:
+                lines.append(f"- **{failed.get('file_path', '<unknown>')}**: {failed.get('reason', 'Unknown reason')}")
+        else:
+            lines.append("No failed files.")
+        lines.append("")
+
         lines.append("## File Summaries")
         file_summaries = summary.get("file_summaries", [])
         if file_summaries:
