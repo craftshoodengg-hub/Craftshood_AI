@@ -5,6 +5,7 @@ from .dwg_metadata import DwgMetadata
 from .dwg_reference import DwgReference
 from .architectural_feature_extractor import ArchitecturalFeatureExtractor
 from .dataset_analyzer import DatasetAnalyzer
+from .dataset_report_exporter import DatasetReportExporter
 from .ezdxf_feature_extractor import EzDXFFeatureExtractor
 from .feature_extractor import BaseFeatureExtractor, DummyFeatureExtractor
 from .knowledge_repository import KnowledgeRepository
@@ -19,6 +20,7 @@ __all__ = [
     "DwgReference",
     "ArchitecturalFeatureExtractor",
     "DatasetAnalyzer",
+    "DatasetReportExporter",
     "EzDXFFeatureExtractor",
     "BaseFeatureExtractor",
     "DummyFeatureExtractor",
