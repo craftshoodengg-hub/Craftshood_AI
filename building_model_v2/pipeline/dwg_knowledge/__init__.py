@@ -20,6 +20,7 @@ from .dwg_conversion_guide import (
     validate_converted_folder,
 )
 from .room_label_detector import RoomLabelDetector, normalize_label
+from .room_polygon_builder import RoomPolygonBuilder
 from .plot_information_detector import PlotInformationDetector
 from .door_window_detector import DoorWindowDetector
 
@@ -44,6 +45,7 @@ __all__ = [
     "validate_converted_folder",
     "RoomLabelDetector",
     "normalize_label",
+    "RoomPolygonBuilder",
     "PlotInformationDetector",
     "DoorWindowDetector",
 ]

@@ -11,7 +11,7 @@ LABEL_PATTERNS: list[tuple[str, re.Pattern[str]]] = [
     ("Kitchen", re.compile(r"\bKITCHEN\b|\bKITCHEN\s*/\s*DINING\b", re.IGNORECASE)),
     ("Living", re.compile(r"\bLIVING\b|\bLIVING\s*/\s*DINING\b|\bHALL\b|\bLOUNGE\b", re.IGNORECASE)),
     ("Dining", re.compile(r"\bDINING\b|\bKITCHEN\s*/\s*DINING\b", re.IGNORECASE)),
-    ("Toilet", re.compile(r"\bTOILET\b|\bA\.?TOILET\b|\bC\.?TOILET\b|\bBATH\b|\bW\.?C\b|\bWC\b", re.IGNORECASE)),
+    ("Toilet", re.compile(r"\bTOILET\b|\bA\.?TOILET\b|\bC\.?TOILET\b|\bBATH\b|\bBATHROOM\b|\bW\.?C\b|\bWC\b", re.IGNORECASE)),
     ("Pooja", re.compile(r"\bPOOJA\b|\bPOOJA\s*SHELF\b", re.IGNORECASE)),
     ("Balcony", re.compile(r"\bCOVERED\s+BALCONY\b|\bBALCONY\b", re.IGNORECASE)),
     ("Utility", re.compile(r"\bUTILITY\b|\bWASH\b", re.IGNORECASE)),
