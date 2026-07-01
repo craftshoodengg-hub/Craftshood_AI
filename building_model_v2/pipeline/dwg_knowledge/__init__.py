@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from .dwg_metadata import DwgMetadata
 from .dwg_reference import DwgReference
+from .architectural_feature_extractor import ArchitecturalFeatureExtractor
 from .ezdxf_feature_extractor import EzDXFFeatureExtractor
 from .feature_extractor import BaseFeatureExtractor, DummyFeatureExtractor
 from .knowledge_repository import KnowledgeRepository
@@ -15,6 +16,7 @@ from .batch_ingestion_service import BatchIngestionService
 __all__ = [
     "DwgMetadata",
     "DwgReference",
+    "ArchitecturalFeatureExtractor",
     "EzDXFFeatureExtractor",
     "BaseFeatureExtractor",
     "DummyFeatureExtractor",
