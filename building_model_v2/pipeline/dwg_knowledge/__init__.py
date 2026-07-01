@@ -14,6 +14,11 @@ from .similarity_scorer import SimilarityScorer
 from .retrieval_engine import RetrievalEngine
 from .retrieval_service import RetrievalService
 from .batch_ingestion_service import BatchIngestionService
+from .dwg_conversion_guide import (
+    recommended_converted_folder,
+    conversion_instructions,
+    validate_converted_folder,
+)
 
 __all__ = [
     "DwgMetadata",
@@ -31,4 +36,7 @@ __all__ = [
     "RetrievalEngine",
     "RetrievalService",
     "BatchIngestionService",
+    "recommended_converted_folder",
+    "conversion_instructions",
+    "validate_converted_folder",
 ]
