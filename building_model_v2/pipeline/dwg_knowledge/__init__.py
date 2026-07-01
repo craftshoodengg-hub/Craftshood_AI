@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from .dwg_metadata import DwgMetadata
 from .dwg_reference import DwgReference
+from .ezdxf_feature_extractor import EzDXFFeatureExtractor
 from .feature_extractor import BaseFeatureExtractor, DummyFeatureExtractor
 from .knowledge_repository import KnowledgeRepository
 from .similarity_query import SimilarityQuery, SimilarityResult
@@ -13,6 +14,7 @@ from .retrieval_service import RetrievalService
 __all__ = [
     "DwgMetadata",
     "DwgReference",
+    "EzDXFFeatureExtractor",
     "BaseFeatureExtractor",
     "DummyFeatureExtractor",
     "KnowledgeRepository",
