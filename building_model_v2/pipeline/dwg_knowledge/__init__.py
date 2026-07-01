@@ -20,6 +20,7 @@ from .dwg_conversion_guide import (
     validate_converted_folder,
 )
 from .room_label_detector import RoomLabelDetector, normalize_label
+from .plot_information_detector import PlotInformationDetector
 
 __all__ = [
     "DwgMetadata",
@@ -42,4 +43,5 @@ __all__ = [
     "validate_converted_folder",
     "RoomLabelDetector",
     "normalize_label",
+    "PlotInformationDetector",
 ]
