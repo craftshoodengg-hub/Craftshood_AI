@@ -10,6 +10,7 @@ from .similarity_query import SimilarityQuery, SimilarityResult
 from .similarity_scorer import SimilarityScorer
 from .retrieval_engine import RetrievalEngine
 from .retrieval_service import RetrievalService
+from .batch_ingestion_service import BatchIngestionService
 
 __all__ = [
     "DwgMetadata",
@@ -23,4 +24,5 @@ __all__ = [
     "SimilarityScorer",
     "RetrievalEngine",
     "RetrievalService",
+    "BatchIngestionService",
 ]
