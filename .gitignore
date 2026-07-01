@@ -26,3 +26,11 @@ flutter_app/build/
 # IDE
 .vscode/
 .idea/
+.pytest_temp/
+training_sources/
+training_sources_dxf/
+debug_plot_text.py
+patch_pipeline_result.py
+patch_pipeline_result_py.py
+temp_patch_pipeline_result.py
+temp_patch_pipeline_result2.py
