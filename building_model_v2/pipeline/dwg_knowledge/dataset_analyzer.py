@@ -12,6 +12,7 @@ from .dwg_conversion_guide import (
     conversion_instructions,
     validate_converted_folder,
 )
+from .door_window_detector import DoorWindowDetector
 from .ezdxf_feature_extractor import EzDXFFeatureExtractor
 from .plot_information_detector import PlotInformationDetector
 from .room_label_detector import RoomLabelDetector
@@ -39,6 +40,7 @@ class DatasetAnalyzer:
         self.extractor = extractor if extractor is not None else EzDXFFeatureExtractor()
         self.room_label_detector = RoomLabelDetector()
         self.plot_information_detector = PlotInformationDetector()
+        self.door_window_detector = DoorWindowDetector()
 
     def analyze_directory(
         self,
@@ -82,6 +84,14 @@ class DatasetAnalyzer:
                 "largest_plot": None,
                 "smallest_plot": None,
             },
+            "door_window_statistics": {
+                "total_doors": 0,
+                "total_windows": 0,
+                "files_with_doors": 0,
+                "files_with_windows": 0,
+                "average_doors_per_file": 0.0,
+                "average_windows_per_file": 0.0,
+            },
             "file_summaries": [],
         }
 
@@ -104,6 +114,17 @@ class DatasetAnalyzer:
                 self._safe_increment(summary["block_names"], block, 1)
             for text in result["texts"]:
                 self._safe_increment(summary["text_values"], text, 1)
+
+            door_window_information = result.get("door_window_information", {})
+            if door_window_information:
+                total_doors = door_window_information.get("door_count", 0)
+                total_windows = door_window_information.get("window_count", 0)
+                summary["door_window_statistics"]["total_doors"] += total_doors
+                summary["door_window_statistics"]["total_windows"] += total_windows
+                if total_doors > 0:
+                    summary["door_window_statistics"]["files_with_doors"] += 1
+                if total_windows > 0:
+                    summary["door_window_statistics"]["files_with_windows"] += 1
 
             room_summary = result.get("rooms", [])
             room_count = len(room_summary)
@@ -163,8 +184,17 @@ class DatasetAnalyzer:
                     "rooms": room_summary,
                     "room_count": room_count,
                     "plot_information": plot_info,
+                    "door_window_information": door_window_information,
                 }
             )
+
+        total_files = summary["files_scanned"] or 1
+        summary["door_window_statistics"]["average_doors_per_file"] = (
+            summary["door_window_statistics"]["total_doors"] / total_files
+        )
+        summary["door_window_statistics"]["average_windows_per_file"] = (
+            summary["door_window_statistics"]["total_windows"] / total_files
+        )
 
         return {
             "files_scanned": summary["files_scanned"],
@@ -177,6 +207,7 @@ class DatasetAnalyzer:
             "room_totals": summary["room_totals"],
             "total_rooms": summary["total_rooms"],
             "plot_statistics": summary["plot_statistics"],
+            "door_window_statistics": summary["door_window_statistics"],
             "file_summaries": summary["file_summaries"],
         }
 
@@ -187,6 +218,7 @@ class DatasetAnalyzer:
             raise ValueError(self._failure_reason(file_path, exc)) from exc
 
         plot_information = self.plot_information_detector.detect(document)
+        door_window_information = self.door_window_detector.detect(document)
         modelspace = document.modelspace()
         rooms = self.room_label_detector.detect(document)
         entity_count = len(modelspace)
@@ -218,6 +250,7 @@ class DatasetAnalyzer:
             "rooms": rooms,
             "room_count": len(rooms),
             "plot_information": plot_information,
+            "door_window_information": door_window_information,
         }
 
     def _failure_reason(self, file_path: str, exc: Exception) -> str:

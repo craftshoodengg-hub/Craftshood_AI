@@ -89,6 +89,16 @@ class DatasetReportExporter:
             lines.append("No plot information detected.")
         lines.append("")
 
+        lines.append("## Door & Window Statistics")
+        door_window_stats = summary.get("door_window_statistics", {})
+        lines.append(f"- **Total Doors:** {door_window_stats.get('total_doors', 0)}")
+        lines.append(f"- **Total Windows:** {door_window_stats.get('total_windows', 0)}")
+        lines.append(f"- **Files with Doors:** {door_window_stats.get('files_with_doors', 0)}")
+        lines.append(f"- **Files with Windows:** {door_window_stats.get('files_with_windows', 0)}")
+        lines.append(f"- **Average Doors per File:** {door_window_stats.get('average_doors_per_file', 0.0)}")
+        lines.append(f"- **Average Windows per File:** {door_window_stats.get('average_windows_per_file', 0.0)}")
+        lines.append("")
+
         lines.append("## Failed Files")
         failed_files = summary.get("failed_files", [])
         if failed_files:
