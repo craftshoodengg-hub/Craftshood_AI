@@ -13,6 +13,7 @@ from .dwg_conversion_guide import (
     validate_converted_folder,
 )
 from .ezdxf_feature_extractor import EzDXFFeatureExtractor
+from .plot_information_detector import PlotInformationDetector
 from .room_label_detector import RoomLabelDetector
 
 
@@ -37,6 +38,7 @@ class DatasetAnalyzer:
     def __init__(self, extractor: EzDXFFeatureExtractor | None = None) -> None:
         self.extractor = extractor if extractor is not None else EzDXFFeatureExtractor()
         self.room_label_detector = RoomLabelDetector()
+        self.plot_information_detector = PlotInformationDetector()
 
     def analyze_directory(
         self,
@@ -71,6 +73,15 @@ class DatasetAnalyzer:
             "text_values": Counter(),
             "room_totals": {room_type: 0 for room_type in ROOM_TYPES},
             "total_rooms": 0,
+            "plot_statistics": {
+                "total_detected": 0,
+                "orientations": {"North": 0, "South": 0, "East": 0, "West": 0},
+                "average_width": None,
+                "average_depth": None,
+                "average_area": None,
+                "largest_plot": None,
+                "smallest_plot": None,
+            },
             "file_summaries": [],
         }
 
@@ -102,6 +113,46 @@ class DatasetAnalyzer:
                 if room_type in summary["room_totals"]:
                     summary["room_totals"][room_type] += 1
 
+            plot_info = result.get("plot_information", {})
+            if plot_info and plot_info.get("plot_width") is not None and plot_info.get("plot_depth") is not None and plot_info.get("plot_area") is not None:
+                summary["plot_statistics"]["total_detected"] += 1
+                orientation = plot_info.get("orientation")
+                if orientation in summary["plot_statistics"]["orientations"]:
+                    summary["plot_statistics"]["orientations"][orientation] += 1
+
+                width = plot_info["plot_width"]
+                depth = plot_info["plot_depth"]
+                area = plot_info["plot_area"]
+                assert width is not None and depth is not None and area is not None
+
+                if summary["plot_statistics"]["largest_plot"] is None or area > summary["plot_statistics"]["largest_plot"]["area"]:
+                    summary["plot_statistics"]["largest_plot"] = {
+                        "width": width,
+                        "depth": depth,
+                        "area": area,
+                        "file": str(file_path),
+                    }
+                if summary["plot_statistics"]["smallest_plot"] is None or area < summary["plot_statistics"]["smallest_plot"]["area"]:
+                    summary["plot_statistics"]["smallest_plot"] = {
+                        "width": width,
+                        "depth": depth,
+                        "area": area,
+                        "file": str(file_path),
+                    }
+
+                if summary["plot_statistics"]["average_width"] is None:
+                    summary["plot_statistics"]["average_width"] = width
+                    summary["plot_statistics"]["average_depth"] = depth
+                    summary["plot_statistics"]["average_area"] = area
+                else:
+                    count = summary["plot_statistics"]["total_detected"]
+                    previous_width = summary["plot_statistics"]["average_width"] or 0.0
+                    previous_depth = summary["plot_statistics"]["average_depth"] or 0.0
+                    previous_area = summary["plot_statistics"]["average_area"] or 0.0
+                    summary["plot_statistics"]["average_width"] = ((previous_width * (count - 1)) + width) / count
+                    summary["plot_statistics"]["average_depth"] = ((previous_depth * (count - 1)) + depth) / count
+                    summary["plot_statistics"]["average_area"] = ((previous_area * (count - 1)) + area) / count
+
             summary["file_summaries"].append(
                 {
                     "file_path": result["file_path"],
@@ -111,6 +162,7 @@ class DatasetAnalyzer:
                     "texts": result["texts"],
                     "rooms": room_summary,
                     "room_count": room_count,
+                    "plot_information": plot_info,
                 }
             )
 
@@ -124,6 +176,7 @@ class DatasetAnalyzer:
             "text_values": dict(summary["text_values"]),
             "room_totals": summary["room_totals"],
             "total_rooms": summary["total_rooms"],
+            "plot_statistics": summary["plot_statistics"],
             "file_summaries": summary["file_summaries"],
         }
 
@@ -133,6 +186,7 @@ class DatasetAnalyzer:
         except (ezdxf.DXFError, IOError, OSError) as exc:
             raise ValueError(self._failure_reason(file_path, exc)) from exc
 
+        plot_information = self.plot_information_detector.detect(document)
         modelspace = document.modelspace()
         rooms = self.room_label_detector.detect(document)
         entity_count = len(modelspace)
@@ -163,6 +217,7 @@ class DatasetAnalyzer:
             "texts": sorted(texts),
             "rooms": rooms,
             "room_count": len(rooms),
+            "plot_information": plot_information,
         }
 
     def _failure_reason(self, file_path: str, exc: Exception) -> str:

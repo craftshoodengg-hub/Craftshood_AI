@@ -66,6 +66,29 @@ class DatasetReportExporter:
             lines.append("No room statistics available.")
         lines.append("")
 
+        lines.append("## Plot Statistics")
+        plot_stats = summary.get("plot_statistics", {})
+        total_detected = plot_stats.get("total_detected", 0)
+        lines.append(f"- **Detected Plots:** {total_detected}")
+        if total_detected > 0:
+            lines.append(f"- **Average Width:** {plot_stats.get('average_width')}")
+            lines.append(f"- **Average Depth:** {plot_stats.get('average_depth')}")
+            lines.append(f"- **Average Area:** {plot_stats.get('average_area')}")
+            orientations = plot_stats.get("orientations", {})
+            lines.append(f"- **North Facing:** {orientations.get('North', 0)}")
+            lines.append(f"- **South Facing:** {orientations.get('South', 0)}")
+            lines.append(f"- **East Facing:** {orientations.get('East', 0)}")
+            lines.append(f"- **West Facing:** {orientations.get('West', 0)}")
+            largest_plot = plot_stats.get("largest_plot")
+            smallest_plot = plot_stats.get("smallest_plot")
+            if largest_plot:
+                lines.append(f"- **Largest Plot:** {largest_plot.get('width')} x {largest_plot.get('depth')} = {largest_plot.get('area')} ({largest_plot.get('file')})")
+            if smallest_plot:
+                lines.append(f"- **Smallest Plot:** {smallest_plot.get('width')} x {smallest_plot.get('depth')} = {smallest_plot.get('area')} ({smallest_plot.get('file')})")
+        else:
+            lines.append("No plot information detected.")
+        lines.append("")
+
         lines.append("## Failed Files")
         failed_files = summary.get("failed_files", [])
         if failed_files:
