@@ -14,7 +14,7 @@ from typing import Any
 
 from shapely.geometry import LineString, Point, Polygon
 
-from adjacency import RoomPolygon
+from room_polygon import RoomPolygon
 from geometry_utils import linear_length
 from validation import validate_room_polygons
 

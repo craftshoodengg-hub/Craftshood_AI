@@ -13,7 +13,7 @@ from typing import Any
 
 from shapely.geometry import Point, Polygon
 
-from adjacency import RoomPolygon
+from room_polygon import RoomPolygon
 from geometry_utils import linear_length
 
 

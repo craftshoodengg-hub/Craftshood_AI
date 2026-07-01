@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from collections.abc import Iterable, Sequence
 
-from adjacency import RoomPolygon
+from room_polygon import RoomPolygon
 
 
 def validate_room_polygons(rooms: Sequence[RoomPolygon]) -> None:

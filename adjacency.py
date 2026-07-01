@@ -14,6 +14,7 @@ from typing import Any
 from shapely.geometry import Polygon
 
 from geometry_utils import linear_length
+from room_polygon import RoomPolygon
 from validation import validate_room_polygons_iterable
 
 
