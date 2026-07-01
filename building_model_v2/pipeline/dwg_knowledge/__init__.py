@@ -8,6 +8,7 @@ from .knowledge_repository import KnowledgeRepository
 from .similarity_query import SimilarityQuery, SimilarityResult
 from .similarity_scorer import SimilarityScorer
 from .retrieval_engine import RetrievalEngine
+from .retrieval_service import RetrievalService
 
 __all__ = [
     "DwgMetadata",
@@ -19,4 +20,5 @@ __all__ = [
     "SimilarityResult",
     "SimilarityScorer",
     "RetrievalEngine",
+    "RetrievalService",
 ]
