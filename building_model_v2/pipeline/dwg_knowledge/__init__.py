@@ -24,6 +24,8 @@ from .room_polygon_builder import RoomPolygonBuilder
 from .room_opening_assigner import RoomOpeningAssigner
 from .plot_information_detector import PlotInformationDetector
 from .door_window_detector import DoorWindowDetector
+from .semantic_room_builder import SemanticRoom, SemanticRoomBuilder
+from .room_adjacency_graph_builder import RoomAdjacency, RoomAdjacencyGraphBuilder
 
 __all__ = [
     "DwgMetadata",
@@ -50,4 +52,8 @@ __all__ = [
     "RoomOpeningAssigner",
     "PlotInformationDetector",
     "DoorWindowDetector",
+    "SemanticRoom",
+    "SemanticRoomBuilder",
+    "RoomAdjacency",
+    "RoomAdjacencyGraphBuilder",
 ]
